@@ -28,11 +28,19 @@ func getPrice(toffer TradeOffer, exchange map[string]float64) float64 {
 	return price
 }
 
-func provideLiquidity(exchange map[string]float64) error {
+func provideLiquidity(bankBalance *[]map[string]float64, exchange map[string]float64) error {
+        for key := range exchange {
+                if exchange[key] <= 0 {
+                        return errors.New(fmt.Sprintf("Amount of both provided currencies must be positive (%v%v<=0).", exchange[key], key))
+                }
+        }
 	if len(exchange) != 2 {
 		return errors.New("You need mapping with exactly two currencies")
 	}
-	for i, pairInBank := range BankBalance {
+	if len(exchange) != 2 {
+		return errors.New("You need mapping with exactly two currencies")
+	}
+	for i, pairInBank := range *bankBalance {
 		existingPairIndex := -1
 		for currencyName := range exchange {
 			if pairInBank[currencyName] != 0.0 {
@@ -47,13 +55,13 @@ func provideLiquidity(exchange map[string]float64) error {
 			for currencyName := range exchange {
 				pairInBank[currencyName] += exchange[currencyName]
 			}
-			log.Printf("%v\n", BankBalance)
+			log.Printf("%v\n", *bankBalance)
 			return nil
 		}
 	}
 	log.Println("Adding a new pair...")
-	BankBalance = append(BankBalance, exchange)
-	log.Printf("%v\n", BankBalance)
+	*bankBalance = append(*bankBalance, exchange)
+	log.Printf("%v\n", *bankBalance)
 	return nil
 }
 
@@ -116,6 +124,8 @@ func executeTrade(toffer TradeOffer, exchange map[string]float64, roundedPricePr
 		return errors.New(fmt.Sprintf("Price has changed more than %v%%, before trade was accepted. Please try again.", allowChange*100))
 	}
 
+        (*userBalance)[toffer.giveCurrency] -= roundedPrice
+        (*userBalance)[toffer.wantCurrency] += toffer.wantAmount
 	exchange[toffer.wantCurrency] -= toffer.wantAmount
 	exchange[toffer.giveCurrency] += roundedPrice
 	log.Printf("Done. Bank: %v\n", BankBalance)
@@ -123,29 +133,35 @@ func executeTrade(toffer TradeOffer, exchange map[string]float64, roundedPricePr
 }
 
 func main() {
-	existingPair := map[string]float64{"coins": 15000, "jjt": 10}
-	provideLiquidity(existingPair)
-	existingPair2 := map[string]float64{"gc": 222, "coins": 2}
-	provideLiquidity(existingPair2)
-	newPair := map[string]float64{"buba": 15000, "jjt": 10}
-	provideLiquidity(newPair)
+	newPair := map[string]float64{"coins": 15000, "jjt": 10}
+	provideLiquidity(&BankBalance, newPair)
+	newPair2 := map[string]float64{"gc": 222, "coins": 350}
+	provideLiquidity(&BankBalance, newPair2)
+	newPair3 := map[string]float64{"buba": 15000, "jjt": 10}
+	provideLiquidity(&BankBalance, newPair3)
+	provideLiquidity(&BankBalance, newPair3)
+
+        myBalance := map[string]float64{"coins": 20000, "jjt": 0, "gc":100}
+
 	mytoffer := TradeOffer{
 		wantAmount:   5,
 		wantCurrency: "jjt",
 		giveCurrency: "coins",
 	}
-        myBalance := map[string]float64{"coins": 20000, "jjt": 0, "gc":100}
 	err := trade(mytoffer, &myBalance)
 	if err != nil {
 		log.Fatal(err)
 	}
+        log.Printf("Current user balance: %v\n", myBalance)
+
 	mytoffer = TradeOffer{
-		wantAmount:   370,
-		wantCurrency: "jjt",
-		giveCurrency: "coins",
+		wantAmount:   50,
+		wantCurrency: "coins",
+		giveCurrency: "gc",
 	}
 	err = trade(mytoffer, &myBalance)
 	if err != nil {
 		log.Fatal(err)
 	}
+        log.Printf("Current user balance: %v\n", myBalance)
 }
