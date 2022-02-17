@@ -8,7 +8,9 @@ import (
 )
 
 var (
+	// Tax added on every trade to ensure Bank's stability.
 	Tax         float64              = 0.01
+	// Maximum allowed exchange rate change (from InitTrade price to ExecuteTrade price).
 	AllowChange float64              = 0.05
 )
 
@@ -39,6 +41,8 @@ func getPrice(Toffer TradeOffer, Exchange map[string]float64) float64 {
 	return price
 }
 
+// Provide liquidity to Bank. It allows Bank to exchange with provided exchange pair.
+// If exchange pair exists, the funds will be added to the existing pair.
 func ProvideLiquidity(BankBalance *[]map[string]float64, Exchange map[string]float64) error {
         for key := range Exchange {
                 if Exchange[key] <= 0 {
@@ -94,6 +98,7 @@ func checkExchange(Toffer TradeOffer, BankBalance *[]map[string]float64) (map[st
 	return map[string]float64{}, errors.New("Exchange not found.")
 }
 
+// Initialize trade. Returned price is not locked and may change until the ExecuteTrade.
 func InitTrade(Td TradeDetails) (TradeLock, error) {
 	Toffer, BankBalance, UserBalance := Td.Toffer, Td.BankBalance, Td.UserBalance
 	Exchange, err := checkExchange(Toffer, BankBalance)
@@ -128,6 +133,7 @@ func InitTrade(Td TradeDetails) (TradeLock, error) {
 	return tl, nil
 }
 
+// Executes trade. Final price may have changed, but not more than AllowPrice.
 func ExecuteTrade(tl TradeLock) error {
 	Td, Exchange, RoundedPricePre := tl.Td, tl.Exchange, tl.RoundedPrice
 	Toffer, BankBalance, UserBalance := Td.Toffer, Td.BankBalance, Td.UserBalance
