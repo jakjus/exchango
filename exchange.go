@@ -130,38 +130,3 @@ func executeTrade(toffer TradeOffer, exchange map[string]float64, roundedPricePr
 	log.Printf("Done. Bank: %v\n", *bankBalance)
 	return nil
 }
-
-func main() {
-	var BankBalance []map[string]float64 = make([]map[string]float64, 0)
-	newPair := map[string]float64{"coins": 15000, "jjt": 10}
-	provideLiquidity(&BankBalance, newPair)
-	newPair2 := map[string]float64{"gc": 222, "coins": 350}
-	provideLiquidity(&BankBalance, newPair2)
-	newPair3 := map[string]float64{"buba": 15000, "jjt": 10}
-	provideLiquidity(&BankBalance, newPair3)
-	provideLiquidity(&BankBalance, newPair3)
-
-        myBalance := map[string]float64{"coins": 20000, "jjt": 0, "gc":100}
-
-	mytoffer := TradeOffer{
-		wantAmount:   5,
-		wantCurrency: "jjt",
-		giveCurrency: "coins",
-	}
-	err := trade(mytoffer, &BankBalance, &myBalance)
-	if err != nil {
-		log.Fatal(err)
-	}
-        log.Printf("Current user balance: %v\n", myBalance)
-
-	mytoffer = TradeOffer{
-		wantAmount:   50,
-		wantCurrency: "coins",
-		giveCurrency: "gc",
-	}
-	err = trade(mytoffer, &BankBalance, &myBalance)
-	if err != nil {
-		log.Fatal(err)
-	}
-        log.Printf("Current user balance: %v\n", myBalance)
-}
