@@ -9,7 +9,6 @@ import (
 
 var (
 	tax         float64              = 0.01
-	BankBalance []map[string]float64 = make([]map[string]float64, 0)
 	allowChange float64              = 0.05
 )
 
@@ -65,8 +64,8 @@ func provideLiquidity(bankBalance *[]map[string]float64, exchange map[string]flo
 	return nil
 }
 
-func checkExchange(toffer TradeOffer) (map[string]float64, error) {
-	for _, v := range BankBalance {
+func checkExchange(toffer TradeOffer, bankBalance *[]map[string]float64) (map[string]float64, error) {
+	for _, v := range *bankBalance {
 		var wantExists, giveExists bool
 		for i := range v {
 			if toffer.wantCurrency == i {
@@ -83,8 +82,8 @@ func checkExchange(toffer TradeOffer) (map[string]float64, error) {
 	return map[string]float64{}, errors.New("Exchange not found.")
 }
 
-func trade(toffer TradeOffer, userBalance *map[string]float64) error {
-	exchange, err := checkExchange(toffer)
+func trade(toffer TradeOffer, bankBalance *[]map[string]float64, userBalance *map[string]float64) error {
+	exchange, err := checkExchange(toffer, bankBalance)
 	bankBal := exchange[toffer.wantCurrency]
 	price := getPrice(toffer, exchange)
 	roundedPrice := price * toffer.wantAmount * (1 + tax)
@@ -101,14 +100,14 @@ func trade(toffer TradeOffer, userBalance *map[string]float64) error {
 	}
 
 	log.Printf("\nYou give: %.2f %v\nYou get: %v %v\nAccept?\n", roundedPrice, toffer.giveCurrency, toffer.wantAmount, toffer.wantCurrency)
-	err = executeTrade(toffer, exchange, roundedPrice, userBalance)
+	err = executeTrade(toffer, exchange, roundedPrice, bankBalance, userBalance)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func executeTrade(toffer TradeOffer, exchange map[string]float64, roundedPricePre float64, userBalance *map[string]float64) error {
+func executeTrade(toffer TradeOffer, exchange map[string]float64, roundedPricePre float64, bankBalance *[]map[string]float64, userBalance *map[string]float64) error {
 	price := getPrice(toffer, exchange)
 	roundedPrice := price * toffer.wantAmount * (1 + tax)
 	bankBal := exchange[toffer.wantCurrency]
@@ -128,11 +127,12 @@ func executeTrade(toffer TradeOffer, exchange map[string]float64, roundedPricePr
         (*userBalance)[toffer.wantCurrency] += toffer.wantAmount
 	exchange[toffer.wantCurrency] -= toffer.wantAmount
 	exchange[toffer.giveCurrency] += roundedPrice
-	log.Printf("Done. Bank: %v\n", BankBalance)
+	log.Printf("Done. Bank: %v\n", *bankBalance)
 	return nil
 }
 
 func main() {
+	var BankBalance []map[string]float64 = make([]map[string]float64, 0)
 	newPair := map[string]float64{"coins": 15000, "jjt": 10}
 	provideLiquidity(&BankBalance, newPair)
 	newPair2 := map[string]float64{"gc": 222, "coins": 350}
@@ -148,7 +148,7 @@ func main() {
 		wantCurrency: "jjt",
 		giveCurrency: "coins",
 	}
-	err := trade(mytoffer, &myBalance)
+	err := trade(mytoffer, &BankBalance, &myBalance)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func main() {
 		wantCurrency: "coins",
 		giveCurrency: "gc",
 	}
-	err = trade(mytoffer, &myBalance)
+	err = trade(mytoffer, &BankBalance, &myBalance)
 	if err != nil {
 		log.Fatal(err)
 	}
